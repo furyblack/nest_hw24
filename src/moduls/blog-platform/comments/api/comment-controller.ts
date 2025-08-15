@@ -27,7 +27,6 @@ export class CommentController {
     @Param('id') id: string,
     @CurrentUser('userId') userId?: string,
   ): Promise<CommentViewDto> {
-    //return this.commentsService.getCommentById(id, userId);
     const comment = await this.commentsService.getCommentById(id, userId);
     if (!comment) throw new NotFoundException('Comment not found');
     return comment;

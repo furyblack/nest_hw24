@@ -1,13 +1,5 @@
 import { ExtendedLikesInfo } from './like-types';
 
-export class NewestLikeDto {
-  addedAt: string;
-  userId: string;
-  login: string;
-}
-
-export type LikeStatus = 'None' | 'Like' | 'Dislike';
-
 export class PostViewDto {
   id: string;
   title: string;

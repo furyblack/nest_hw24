@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource, Repository } from 'typeorm';
 import { GetPostsQueryDto } from '../dto/get-posts-query.dto';
-
 import { DeletionStatus, Post } from '../domain/post.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CreatePostDto } from '../dto/create-post.dto';

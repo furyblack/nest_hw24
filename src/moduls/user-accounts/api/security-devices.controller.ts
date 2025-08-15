@@ -57,6 +57,5 @@ export class SecurityDevicesController {
     @Param('deviceId') deviceId: string,
   ) {
     await this.sessionService.terminateSpecificSession(user.userId, deviceId);
-    // Возвращаем 204 без тела
   }
 }
