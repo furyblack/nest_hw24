@@ -4,10 +4,10 @@ import { DataSource, Repository } from 'typeorm';
 import { CommentViewDto, CreateCommentDto } from '../dto/create-comment-dto';
 import { Post } from '../../posts/domain/post.entity';
 import { Comment } from '../domain/comment.entity';
-import { GetCommentsQueryDto } from '../dto/get-comments-query.dto';
 import { LikeStatusEnum } from '../../posts/dto/like-status.dto';
 import { LikeStatus } from '../../posts/dto/like-types';
 import { Likes } from '../../posts/domain/likes.entity';
+import { GetCommentsQueryDto } from '../dto/get-comments-query.dto';
 
 @Injectable()
 export class CommentsRepository {
@@ -96,12 +96,67 @@ export class CommentsRepository {
     };
   }
 
+  // агрегируем лайки дизлайки по пачке  коментов
+  private async getCommentLikeCounters(commentIds: string[]) {
+    if (!commentIds.length) return {};
+    const rows = await this.likeRepo
+      .createQueryBuilder('l')
+      .select('l.entity_id', 'entityId')
+      .addSelect(
+        `SUM(CASE WHEN l.status = :like THEN 1 ELSE 0 END)`,
+        'likesCount',
+      )
+      .addSelect(
+        `SUM(CASE WHEN l.status = :dislike THEN 1 ELSE 0 END)`,
+        'dislikesCount',
+      )
+      .where('l.entity_id IN (:...ids)', { ids: commentIds })
+      .andWhere('l.entity_type = :type', { type: 'Comment' })
+      .groupBy('l.entity_id')
+      .setParameters({ like: LikeStatus.Like, dislike: LikeStatus.Dislike })
+      .getRawMany<{
+        entityId: string;
+        likesCount: string;
+        dislikesCount: string;
+      }>();
+
+    const map: Record<string, { likesCount: number; dislikesCount: number }> =
+      {};
+    for (const r of rows) {
+      map[r.entityId] = {
+        likesCount: Number(r.likesCount) || 0,
+        dislikesCount: Number(r.dislikesCount) || 0,
+      };
+    }
+    return map;
+  }
+
+  //статусы текущего юзера по пачке коментов
+
+  private async getUserCommentStatuses(commentIds: string[], userId: string) {
+    if (!commentIds.length) return {};
+    const rows = await this.likeRepo
+      .createQueryBuilder('l')
+      .select(['l.entity_id AS "entityId"', 'l.status AS "status"'])
+      .where('l.entity_id IN (:...ids)', { ids: commentIds })
+      .andWhere('l.entity_type = :type', { type: 'Comment' })
+      .andWhere('l.user_id = :userId', { userId })
+      // если теоретически может быть несколько записей берем самую свежую
+      .orderBy('l.created_at', 'DESC')
+      .getRawMany<{ entityId: string; status: LikeStatus }>();
+
+    const map: Record<string, LikeStatus> = {};
+    for (const r of rows) {
+      if (!(r.entityId in map)) map[r.entityId] = r.status ?? LikeStatus.None;
+    }
+    return map;
+  }
+
   async getCommentsForPost(
     postId: string,
     query: GetCommentsQueryDto,
     currentUserId?: string,
   ) {
-    // убедимся, что пост существует
     const exists = await this.dataSource
       .getRepository(Post)
       .exist({ where: { id: postId } });
@@ -120,13 +175,38 @@ export class CommentsRepository {
       .createQueryBuilder('c')
       .leftJoinAndSelect('c.user', 'u')
       .where('c.post_id = :postId', { postId })
-      .orderBy(`c.${sortBy}`, sortDir)
+      .orderBy(`c.${sortBy}`, sortDir as 'ASC' | 'DESC')
       .skip(skip)
       .take(pageSize);
 
     const [items, totalCount] = await qb.getManyAndCount();
     const pagesCount = Math.ceil(totalCount / pageSize);
-    const dtos = items.map((c) => this.mapToDto(c, currentUserId));
+
+    const ids = items.map((c) => c.id);
+    const [counters, userStatuses] = await Promise.all([
+      this.getCommentLikeCounters(ids),
+      currentUserId
+        ? this.getUserCommentStatuses(ids, currentUserId)
+        : Promise.resolve({}),
+    ]);
+
+    const dtos = items.map((c) => ({
+      id: c.id,
+      content: c.content,
+      commentatorInfo: {
+        userId: c.user.id,
+        userLogin: c.user.login,
+      },
+      createdAt: c.createdAt.toISOString(),
+      likesInfo: {
+        likesCount: counters[c.id]?.likesCount ?? 0,
+        dislikesCount: counters[c.id]?.dislikesCount ?? 0,
+        myStatus: currentUserId
+          ? (userStatuses[c.id] ?? LikeStatus.None)
+          : LikeStatus.None,
+      },
+    }));
+
     return { pagesCount, page, pageSize, totalCount, items: dtos };
   }
 
