@@ -38,7 +38,7 @@ export class CommentService {
   async getCommentById(
     commentId: string,
     currentUserId?: string,
-  ): Promise<CommentViewDto> {
+  ): Promise<CommentViewDto | null> {
     const comment = await this.commentsRepo.findCommentById(
       commentId,
       currentUserId,

@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  NotFoundException,
   Param,
   Put,
   UseGuards,
@@ -19,13 +20,17 @@ import { JwtOptionalAuthGuard } from '../../../user-accounts/guards/bearer/jwt-o
 @Controller('comments')
 export class CommentController {
   constructor(private readonly commentsService: CommentService) {}
+
   @Get(':id')
   @UseGuards(JwtOptionalAuthGuard)
   async getCommentById(
     @Param('id') id: string,
     @CurrentUser('userId') userId?: string,
   ): Promise<CommentViewDto> {
-    return this.commentsService.getCommentById(id, userId);
+    //return this.commentsService.getCommentById(id, userId);
+    const comment = await this.commentsService.getCommentById(id, userId);
+    if (!comment) throw new NotFoundException('Comment not found');
+    return comment;
   }
 
   @Put(':id')

@@ -7,13 +7,16 @@ import { Comment } from '../domain/comment.entity';
 import { GetCommentsQueryDto } from '../dto/get-comments-query.dto';
 import { LikeStatusEnum } from '../../posts/dto/like-status.dto';
 import { LikeStatus } from '../../posts/dto/like-types';
+import { Likes } from '../../posts/domain/likes.entity';
 
 @Injectable()
 export class CommentsRepository {
   constructor(
     @InjectRepository(Comment)
-    private readonly repo: Repository<Comment>,
+    private readonly commentRepository: Repository<Comment>,
     private readonly dataSource: DataSource,
+    @InjectRepository(Likes)
+    private readonly likeRepo: Repository<Likes>,
   ) {}
 
   async createComment(
@@ -26,26 +29,71 @@ export class CommentsRepository {
       .findOneBy({ id: postId });
     if (!post) throw new NotFoundException('Post not found');
 
-    const comment = this.repo.create({
+    const comment = this.commentRepository.create({
       content: dto.content,
       post,
       user,
       userLogin: user.login,
     });
-    const saved = await this.repo.save(comment);
+    const saved = await this.commentRepository.save(comment);
     return this.mapToDto(saved, user.id);
+  }
+  private normalizeLikeStatus(status: string): LikeStatus {
+    if (status === LikeStatus.Like) return LikeStatus.Like;
+    if (status === LikeStatus.Dislike) return LikeStatus.Dislike;
+    return LikeStatus.None;
   }
 
   async findCommentById(
     commentId: string,
     currentUserId?: string,
   ): Promise<CommentViewDto | null> {
-    const comment = await this.repo.findOne({
-      where: { id: commentId },
-      relations: ['user', 'post'],
-    });
+    const comment = await this.commentRepository
+      .createQueryBuilder('comment')
+      .leftJoinAndSelect('comment.user', 'user')
+      .where('comment.id = :commentId', { commentId })
+      .getOne();
     if (!comment) return null;
-    return this.mapToDto(comment, currentUserId);
+
+    let myStatus = LikeStatus.None;
+    if (currentUserId) {
+      const like = await this.likeRepo
+        .createQueryBuilder('like')
+        .select(['like.status'])
+        .where('like.entity_id = :commentId', { commentId })
+        .andWhere('like.user_id = :userId', { userId: currentUserId })
+        .andWhere('like.entity_type = :type', { type: 'Comment' })
+        .getOne();
+      myStatus = this.normalizeLikeStatus(like?.status || LikeStatus.None);
+    }
+    const likesCount = await this.likeRepo
+      .createQueryBuilder('like')
+      .where('like.entity_id = :commentId', { commentId })
+      .andWhere('like.entity_type = :type', { type: 'Comment' })
+      .andWhere('like.status = :status', { status: LikeStatus.Like })
+      .getCount();
+
+    const dislikesCount = await this.likeRepo
+      .createQueryBuilder('like')
+      .where('like.entity_id = :commentId', { commentId })
+      .andWhere('like.entity_type = :type', { type: 'Comment' })
+      .andWhere('like.status = :status', { status: LikeStatus.Dislike })
+      .getCount();
+
+    return {
+      id: comment.id,
+      content: comment.content,
+      commentatorInfo: {
+        userId: comment.user.id,
+        userLogin: comment.user.login,
+      },
+      createdAt: comment.createdAt.toISOString(),
+      likesInfo: {
+        likesCount,
+        dislikesCount,
+        myStatus,
+      },
+    };
   }
 
   async getCommentsForPost(
@@ -68,7 +116,7 @@ export class CommentsRepository {
     const sortDir =
       query.sortDirection?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
-    const qb = this.repo
+    const qb = this.commentRepository
       .createQueryBuilder('c')
       .leftJoinAndSelect('c.user', 'u')
       .where('c.post_id = :postId', { postId })
@@ -83,12 +131,12 @@ export class CommentsRepository {
   }
 
   async updateContent(commentId: string, content: string): Promise<void> {
-    const res = await this.repo.update(commentId, { content });
+    const res = await this.commentRepository.update(commentId, { content });
     if (res.affected === 0) throw new NotFoundException('Comment not found');
   }
 
   async deleteComment(commentId: string): Promise<void> {
-    const res = await this.repo.delete(commentId);
+    const res = await this.commentRepository.delete(commentId);
     if (res.affected === 0) throw new NotFoundException('Comment not found');
   }
 
