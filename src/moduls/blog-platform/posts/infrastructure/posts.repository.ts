@@ -212,7 +212,6 @@ export class PostsRepository {
     const [items, totalCount] = await qb.getManyAndCount();
 
     //получаем статусы лайков текущего пользователя
-    console.log('fffffffffffffffff', userId);
     const userLikeStatuses = userId
       ? await this.getUserLikeStatuses(
           items.map((p) => p.id),
