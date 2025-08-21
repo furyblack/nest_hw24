@@ -70,7 +70,6 @@ export class PostsPublicController {
     @Query() query: GetCommentsQueryDto,
     @CurrentUser('userId') userId: string,
   ) {
-    console.log('🟡 userId:', userId);
     return this.commentsService.getCommentsForPost(postId, query, userId);
   }
 
