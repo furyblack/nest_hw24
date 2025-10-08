@@ -9,6 +9,6 @@ async function bootstrap() {
   app.useGlobalPipes(new CustomValidationPipe());
   app.use(cookieParser());
   appSetup(app);
-  await app.listen(3000);
+  await app.listen(3003);
 }
 bootstrap();

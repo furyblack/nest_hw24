@@ -6,6 +6,6 @@ export const CurrentUser = createParamDecorator(
 
     if (!request.user) return null;
 
-    return data ? request.user[data] : request.user.id; // Возвращаем только userId
+    return data ? request.user[data] : request.user.id;
   },
 );
