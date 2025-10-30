@@ -39,8 +39,6 @@ export class AuthService {
       });
     }
 
-    //dsfs
-
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const confirmationCode = uuidv4();
 
