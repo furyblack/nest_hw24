@@ -94,7 +94,7 @@ export class AuthService {
     const accessToken = this.generateAccessToken(user.id, user.login);
     const refreshToken = this.generateRefreshToken(user.id, deviceId);
 
-    // Декодируем токен, чтобы вытащить `iat`
+    // Декодируем токен, чтобы вытащить `iat` если получится
     const payload = this.jwtService.decode(refreshToken) as any;
     const lastActiveDate = new Date(payload.iat * 1000);
 
