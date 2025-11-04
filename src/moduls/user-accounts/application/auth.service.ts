@@ -98,7 +98,6 @@ export class AuthService {
     const payload = this.jwtService.decode(refreshToken) as any;
     const lastActiveDate = new Date(payload.iat * 1000);
 
-    // Сохраняем сессию
     await this.sessionService.createSession({
       userId: user.id,
       deviceId,
