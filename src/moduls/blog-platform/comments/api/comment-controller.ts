@@ -45,7 +45,7 @@ export class CommentController {
       updateCommentDto.content,
       userId,
     );
-  } //cor push
+  }
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
