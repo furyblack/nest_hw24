@@ -20,7 +20,7 @@ export class CommentViewDto {
   id: string;
   content: string;
   commentatorInfo: CommentatorInfoDto;
-  createdAt: string; // ISO string
+  createdAt: string;
   likesInfo: LikesInfoDto;
 }
 
