@@ -75,8 +75,6 @@ export class AuthService {
     userAgent: string,
     response: Response,
   ): Promise<{ accessToken: string }> {
-    console.log(dto.loginOrEmail, 'input loginOrEmail');
-
     const user = await this.usersRepository.findByLoginOrEmail(
       dto.loginOrEmail,
     );
