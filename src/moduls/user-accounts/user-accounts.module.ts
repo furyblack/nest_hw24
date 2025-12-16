@@ -39,7 +39,7 @@ import { Session } from './domain/session.entity';
     UsersRepository,
     JwtModule,
     /* MongooseModule реэкспорт делаем, если хотим чтобы зарегистрированные здесь модельки могли
-    инджектиться в сервисы других модулей, которые импортнут этот модул */
+    инджектироваться в сервисы других модулей, которые импортнут этот модуль */
   ],
 })
 export class UserAccountsModule {}
