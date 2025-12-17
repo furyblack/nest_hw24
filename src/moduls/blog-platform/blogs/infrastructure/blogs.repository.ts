@@ -32,7 +32,6 @@ export class BlogsRepository {
 
     const qb = this.blogRepo.createQueryBuilder('b');
 
-    // 1) фильтр
     if (query.searchNameTerm) {
       qb.where('LOWER(b.name) LIKE :term', {
         term: `%${query.searchNameTerm.toLowerCase()}%`,
