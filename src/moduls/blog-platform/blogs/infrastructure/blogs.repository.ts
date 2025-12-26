@@ -46,9 +46,7 @@ export class BlogsRepository {
       query.sortDirection?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
     if (sortBy === 'name') {
-      qb
-        // прямой порядок по name в байтовой колляции
-        .orderBy('b.name COLLATE "C"', sortDirection);
+      qb.orderBy('b.name COLLATE "C"', sortDirection);
     } else if (sortBy === 'websiteUrl') {
       qb.orderBy('b.websiteUrl', sortDirection);
     } else {
