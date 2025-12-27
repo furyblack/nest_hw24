@@ -56,7 +56,7 @@ export class BlogsRepository {
       );
     }
 
-    // 3) пагинация — ОБЯЗАТЕЛЬНО использовать take + skip
+    // 3) пагинация
     qb.skip(skip).take(pageSize);
 
     // 4) выполнить запрос
