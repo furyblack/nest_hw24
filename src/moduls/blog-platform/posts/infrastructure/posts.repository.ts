@@ -147,7 +147,7 @@ export class PostsRepository {
       .andWhere('like.entity_type = :type', { type: 'Post' })
       .andWhere('like.status = :status', { status: LikeStatus.Like });
 
-    //основной запрос выбирающий топ 3 для каждого поста
+    //основной запрос выбирающий топ 3 для каждого постика
 
     const newestLikes = await this.dataSource
       .createQueryBuilder()
